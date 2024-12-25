@@ -14,6 +14,7 @@ let figureArgs = {
     n: 2,
     m: 0.5
 }
+let stoneT, normalT, specularT;
 /* Draws a colored cube, along with a set of coordinate axes.
  * (Note that the use of the above drawPrimitive function is not an efficient
  * way to draw with WebGL.  Here, the geometry is so simple that it doesn't matter.)
@@ -67,10 +68,15 @@ function initGL() {
 
     shProgram.iAttribVertex = gl.getAttribLocation(prog, "vertex");
     shProgram.iAttribNormal = gl.getAttribLocation(prog, "normal");
+    shProgram.iAttribTexture = gl.getAttribLocation(prog, "texture");
+    shProgram.iAttribTangent = gl.getAttribLocation(prog, "tangent");
     shProgram.iModelViewProjectionMatrix = gl.getUniformLocation(prog, "ModelViewProjectionMatrix");
     shProgram.iNormalMatrix = gl.getUniformLocation(prog, "NormalMatrix");
     shProgram.iColor = gl.getUniformLocation(prog, "color");
     shProgram.iLightPosition = gl.getUniformLocation(prog, "lightPosition");
+    shProgram.iStone = gl.getUniformLocation(prog, "stoneT");
+    shProgram.iNormal = gl.getUniformLocation(prog, "normalT");
+    shProgram.iSpecular = gl.getUniformLocation(prog, "specularT");
 
     surface = new Model('Surface');
     surface.BufferData(...CreateSurfaceData(figureArgs));
@@ -146,6 +152,34 @@ function init() {
     }
 
     spaceball = new TrackballRotator(canvas, draw, 0);
-
+    gl.activeTexture(gl.TEXTURE0);
+    stoneT = getTexute(stone, shProgram.iStone, 0)
+    gl.activeTexture(gl.TEXTURE1);
+    normalT = getTexute(NormalMap, shProgram.iNormal, 1)
+    gl.activeTexture(gl.TEXTURE2);
+    specularT = getTexute(SpecularMap, shProgram.iSpecular, 2)
     animate();
+}
+function getTexute(src, l, i) {
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    const image = new Image();
+    image.crossOrigin = 'anonymus';
+    image.src = src
+    image.onload = () => {
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texImage2D(
+            gl.TEXTURE_2D,
+            0,
+            gl.RGBA,
+            gl.RGBA,
+            gl.UNSIGNED_BYTE,
+            image
+        );
+        console.log("imageLoaded")
+        draw()
+    }
+    gl.uniform1i(l, i);
 }

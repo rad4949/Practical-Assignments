@@ -4,11 +4,16 @@
 const vertexShaderSource = `
 attribute vec3 vertex;
 attribute vec3 normal;
+attribute vec2 texture;
+attribute vec3 tangent;
 uniform mat4 ModelViewProjectionMatrix;
 uniform mat4 NormalMatrix;
-//uniform vec3 lightPosition;
 
+varying vec3 vVertex;
 varying vec3 vNormal;
+varying vec2 vTexture;
+varying vec3 vTangent;
+varying vec3 vBitangent;
 varying vec4 color; 
 
 float Ka = 1.0;
@@ -24,7 +29,11 @@ void main() {
     vec4 vertex4 = ModelViewProjectionMatrix * vec4(vertex, 1.0);
     vec3 vertexPosition = vec3(vertex4) / vertex4.w;
     vNormal = vec3(NormalMatrix * vec4(normal, 0.0));
-
+    vTangent = normalize(vec3(NormalMatrix * vec4(tangent, 0.0)));
+    vTexture = texture;
+    // Gram-Schmidt orthogonalization give priority either to normal
+    vTangent= normalize(vTangent - dot(vTangent, vNormal) * vNormal);
+vBitangent = normalize(cross(vTangent,vNormal));
     vec3 N = normalize(vNormal);
     vec3 L = normalize(lightPosition - vertexPosition);
 
@@ -40,7 +49,7 @@ void main() {
     }
 
     color = vec4(Ka * ambientColor + Kd * lambertian * diffuseColor + Ks * specular * specularColor, 1.0);
-
+    vVertex = vertex4.xyz;
     gl_Position = ModelViewProjectionMatrix * vec4(vertex,1.0);
 }`;
 
@@ -53,10 +62,43 @@ const fragmentShaderSource = `
    precision mediump float;
 #endif
 
+varying vec3 vVertex;
 varying vec3 vNormal;
+varying vec2 vTexture;
+varying vec3 vTangent;
+varying vec3 vBitangent;
 
-varying vec4 color; 
+varying vec4 color;
+uniform sampler2D stoneT;
+uniform sampler2D normalT;
+uniform sampler2D specularT;
+
+float shininessVal = 100.0;
+
+uniform vec3 lightPosition;
 void main() {
+    vec3 T = normalize(vTangent);
+    vec3 B = normalize(vBitangent);
+    vec3 N = texture2D(normalT,vTexture).rgb;
+    N = N * 2.0 - 1.0;
+    mat3 TBN = mat3(T, B, N);
+    vec3 normal = normalize(TBN * N);
+    vec3 L = normalize(lightPosition - vVertex);
+    float lambertian = max(dot(normal, L), 0.0);
+    float specular = 0.0;
+    if(lambertian > 0.0) {
+        vec3 R = reflect(-L, normal);      // Reflected light vector
+        vec3 V = normalize(-vVertex); // Vector to viewer
+        // Compute the specular term
+        float specAngle = max(dot(R, V), 0.0);
+        specular = pow(specAngle, shininessVal);
+    }
+    vec3 stoneColor = vec3(texture2D(stoneT,vTexture));
+    vec3 normalColor = vec3(texture2D(normalT,vTexture));
+    vec3 specularColor = vec3(texture2D(specularT,vTexture));
+    vec4 colorT = vec4(lambertian*stoneColor.rgb,1.0);
+    vec4 specT = vec4(specular*specularColor,1.0);
     gl_FragColor = color;
-    //gl_FragColor = vec4(normalize(vNormal),1.0);
+    gl_FragColor = vec4(normalColor,1.0);
+    gl_FragColor = colorT+specT;
 }`;

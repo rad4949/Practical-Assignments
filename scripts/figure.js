@@ -9,6 +9,8 @@ function CreateSurfaceData(obj) {
     } = obj
     let vertexList = [];
     let indexList = [];
+    let textureList = [];
+    let tangentList = [];
     const uRange = PI * 2;
     const uCount = uRange / uStep;
     const vCount = vRange / vStep;
@@ -26,6 +28,9 @@ function CreateSurfaceData(obj) {
         for (let u = 0; u < uRange; u += uStep) {
             const vertex = RuledRotorCylindroid(u, v, uStep, vStep, a, b, n, m)
             vertexList.push(...vertex)
+            textureList.push(u / uRange, v / vRange)
+            const vertex2 = RuledRotorCylindroid(u + 0.01, v, uStep, vStep, a, b, n, m)
+            tangentList.push(...m4.normalize(vertex2.map((v, i) => v - vertex[i])))
         }
     }
     for (let i = 0; i < vertexList.length / 3; i++) {
@@ -38,7 +43,7 @@ function CreateSurfaceData(obj) {
         indexList.push(i + uCount)
     }
     const normalList = calculateNormals(vertexList);
-    const lists = [vertexList, indexList, normalList]
+    const lists = [vertexList, indexList, normalList, textureList, tangentList]
     return lists
 }
 
