@@ -12,9 +12,11 @@ let figureArgs = {
     a: 1,
     b: 2,
     n: 2,
-    m: 0.5
+    m: 0.5,
+    scaler: 0.5
 }
 let stoneT, normalT, specularT;
+let translator = [0, 0]
 /* Draws a colored cube, along with a set of coordinate axes.
  * (Note that the use of the above drawPrimitive function is not an efficient
  * way to draw with WebGL.  Here, the geometry is so simple that it doesn't matter.)
@@ -48,6 +50,18 @@ function draw() {
     gl.uniform4fv(shProgram.iColor, [1, 1, 0, 1]);
     const t = Date.now() * 0.001
     gl.uniform3fv(shProgram.iLightPosition, [3 * sin(t), 3 * cos(t), 0]);
+    gl.uniform3fv(shProgram.iRelative, RuledRotorCylindroid(
+        translator[0] * 2 * PI,
+        translator[1] * figureArgs.vRange,
+        figureArgs.uStep,
+        figureArgs.vStep,
+        figureArgs.a,
+        figureArgs.b,
+        figureArgs.n,
+        figureArgs.m,
+    ));
+    gl.uniform2fv(shProgram.iTranslator, translator);
+    gl.uniform1f(shProgram.iScaler, figureArgs.scaler);
 
     surface.BufferData(...CreateSurfaceData(figureArgs));
 
@@ -77,6 +91,9 @@ function initGL() {
     shProgram.iStone = gl.getUniformLocation(prog, "stoneT");
     shProgram.iNormal = gl.getUniformLocation(prog, "normalT");
     shProgram.iSpecular = gl.getUniformLocation(prog, "specularT");
+    shProgram.iScaler = gl.getUniformLocation(prog, "scaler");
+    shProgram.iTranslator = gl.getUniformLocation(prog, "translator");
+    shProgram.iRelative = gl.getUniformLocation(prog, "relative");
 
     surface = new Model('Surface');
     surface.BufferData(...CreateSurfaceData(figureArgs));
@@ -129,6 +146,7 @@ function init() {
     gui.add(figureArgs, 'b', -2, 2).step(0.01).name('B');
     gui.add(figureArgs, 'n', -3, 3).step(0.1).name('N');
     gui.add(figureArgs, 'm', 0.1, 1).step(0.01).name('M');
+    gui.add(figureArgs, 'scaler', 0.1, 1).step(0.01).name('Scale Factor');
     let canvas;
     try {
         canvas = document.getElementById("webglcanvas");
@@ -182,4 +200,19 @@ function getTexute(src, l, i) {
         draw()
     }
     gl.uniform1i(l, i);
+}
+
+window.onkeydown = (e) => {
+    if (e.keyCode == 87) {
+        translator[0] = Math.min(translator[0] + 0.01, 1);
+    }
+    else if (e.keyCode == 83) {
+        translator[0] = Math.max(translator[0] - 0.01, 0);
+    }
+    else if (e.keyCode == 65) {
+        translator[1] = Math.max(translator[1] - 0.1, 0);
+    }
+    else if (e.keyCode == 68) {
+        translator[1] = Math.min(translator[1] + 0.1, 1);
+    }
 }

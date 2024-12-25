@@ -24,13 +24,29 @@ vec3 ambientColor = vec3(0.4, 0.4, 0.6);
 vec3 diffuseColor = vec3(0.5, 0.5, 0.7);   
 vec3 specularColor = vec3(1.0);
 uniform vec3 lightPosition;
+${shaderHelpers}
+
+uniform vec2 translator;
+uniform float scaler;
+varying vec3 original;
+uniform vec3 relative;
 
 void main() {
+    original = vertex;
     vec4 vertex4 = ModelViewProjectionMatrix * vec4(vertex, 1.0);
     vec3 vertexPosition = vec3(vertex4) / vertex4.w;
     vNormal = vec3(NormalMatrix * vec4(normal, 0.0));
     vTangent = normalize(vec3(NormalMatrix * vec4(tangent, 0.0)));
-    vTexture = texture;
+
+    //vTexture = texture;
+    mat4 matr1 = translation(-translator);
+    mat4 matr2 = translation(translator);
+    mat4 matr3 = scaling(scaler);
+    vec4 t1 = matr1*vec4(texture,0.,1.);
+    vec4 s1 = matr3*t1;
+    vec4 t2 = matr2*s1;
+    vTexture = t2.xy;
+
     // Gram-Schmidt orthogonalization give priority either to normal
     vTangent= normalize(vTangent - dot(vTangent, vNormal) * vNormal);
 vBitangent = normalize(cross(vTangent,vNormal));
@@ -75,6 +91,10 @@ uniform sampler2D specularT;
 
 float shininessVal = 100.0;
 
+varying vec3 original;
+uniform vec3 relative;
+
+
 uniform vec3 lightPosition;
 void main() {
     vec3 T = normalize(vTangent);
@@ -101,4 +121,7 @@ void main() {
     gl_FragColor = color;
     gl_FragColor = vec4(normalColor,1.0);
     gl_FragColor = colorT+specT;
+    if(distance(original,relative)<0.1){
+        gl_FragColor = vec4(1.0,0.0,0.0,1.0);
+    }
 }`;
