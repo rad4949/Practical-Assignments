@@ -39,11 +39,16 @@ function draw() {
     let modelViewProjection = m4.multiply(projection, matAccum1);
 
     gl.uniformMatrix4fv(shProgram.iModelViewProjectionMatrix, false, modelViewProjection);
+    const inversion = m4.inverse(modelViewProjection);
+    const transposion = m4.transpose(inversion);
+    gl.uniformMatrix4fv(shProgram.iNormalMatrix, false, transposion);
 
     /* Draw the six faces of a cube, with different colors. */
     gl.uniform4fv(shProgram.iColor, [1, 1, 0, 1]);
+    const t = Date.now() * 0.001
+    gl.uniform3fv(shProgram.iLightPosition, [3 * sin(t), 3 * cos(t), 0]);
 
-    surface.BufferData(CreateSurfaceData(figureArgs));
+    surface.BufferData(...CreateSurfaceData(figureArgs));
 
     surface.Draw();
 }
@@ -61,11 +66,14 @@ function initGL() {
     shProgram.Use();
 
     shProgram.iAttribVertex = gl.getAttribLocation(prog, "vertex");
+    shProgram.iAttribNormal = gl.getAttribLocation(prog, "normal");
     shProgram.iModelViewProjectionMatrix = gl.getUniformLocation(prog, "ModelViewProjectionMatrix");
+    shProgram.iNormalMatrix = gl.getUniformLocation(prog, "NormalMatrix");
     shProgram.iColor = gl.getUniformLocation(prog, "color");
+    shProgram.iLightPosition = gl.getUniformLocation(prog, "lightPosition");
 
     surface = new Model('Surface');
-    surface.BufferData(CreateSurfaceData(figureArgs));
+    surface.BufferData(...CreateSurfaceData(figureArgs));
 
     gl.enable(gl.DEPTH_TEST);
 }
